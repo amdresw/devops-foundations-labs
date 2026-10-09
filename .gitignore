@@ -1,0 +1,17 @@
+# Editor
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Secrets: never commit these
+.env
+*.pem
+*.key
+*.secret
+
+# Scratch files
+*.tmp
+*.swp
