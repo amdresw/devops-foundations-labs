@@ -20,7 +20,7 @@ Predictions made before running each step, and how they turned out:
 | After 300 s | The service "suspends" | Wrong. `sleep 300` simply exits with code 0 and the unit becomes `inactive (dead)`. Suspending (pausing) is a different thing |
 | Broken service | `Active: inactive` | Wrong. It is `failed`. `inactive` means a normal stop, `failed` means something went wrong |
 | Broken service | Bad path in `ExecStart` (`sleep` became `slep`) | Correct, and the log line proves it |
-| Restart without `daemon-reload` | Service shows `active`, no warning at the top | The `active` result was real but misleading (see Results). No warning appeared |
+| Restart without `daemon-reload` | Service shows `active`, no warning at the top | The `active` result was misleading (see Results). The service did run the new path, which could not be reproduced in Lab 02, so this step most likely included a reload that I did not record |
 
 ## Procedure
 
@@ -29,7 +29,7 @@ Predictions made before running each step, and how they turned out:
 3. Broke it by changing `/usr/bin/sleep` to `/usr/bin/slep` with `sed`, then `daemon-reload` and `restart`.
 4. Diagnosed with `systemctl status` and `journalctl -u lab-hello.service -n 20`.
 5. Repaired the path, reloaded, restarted and verified.
-6. Experiment: broke it again and restarted **without** `daemon-reload`, then reloaded and restarted again.
+6. Experiment: broke it again and restarted, intending to skip `daemon-reload`, then reloaded and restarted again. (See the open question: this step could not be reproduced.)
 7. Restored the file, checked `NeedDaemonReload` before and after the reload, then deleted the unit.
 
 ## Commands and their purpose
@@ -67,7 +67,7 @@ systemd[1]: lab-hello.service: Main process exited, code=exited, status=203/EXEC
 systemd[1]: lab-hello.service: Failed with result 'exit-code'.
 ```
 
-**Restart without `daemon-reload`**: the first `status`, taken about 16 ms after the restart, showed `active (running)` with an empty CGroup and Main PID `(slep)`, while the log lines right below it already reported `status=203/EXEC`. After `daemon-reload` and another `restart`, the status showed `failed`.
+**Restart (intended without `daemon-reload`)**: the first `status`, taken about 16 ms after the restart, showed `active (running)` with an empty CGroup and Main PID `(slep)`, while the log lines right below it already reported `status=203/EXEC`. After `daemon-reload` and another `restart`, the status showed `failed`.
 
 **`NeedDaemonReload`**
 
@@ -104,9 +104,11 @@ The fault could also have been confirmed independently with `ls -l /usr/bin/slep
 - A single `status` taken milliseconds after a restart can show `active` for a service that has already failed. The log lines (or a second check) told the truth. Cross-check one view with another before concluding.
 - The PID of the main process is not the PID of its parent. For a system service, the parent is systemd (PID 1).
 - The `Loaded: ... static` line means the unit has no `[Install]` section, so it cannot be enabled at boot.
-- `NeedDaemonReload` is a reliable way to know whether the unit on disk differs from the loaded one. Do not rely on a warning appearing in `status`.
+- `NeedDaemonReload` is a reliable way to know whether the unit on disk differs from the loaded one. A `changed on disk` warning also appears in `status` when the loaded unit is stale; its absence here is consistent with a reload having happened.
 - Deleting a unit does not clear its failed state: the unit showed `Loaded: not-found` and `Active: failed`. `systemctl reset-failed <unit>` clears that state, but I did not run it in this lab.
 
-## Open question
+## Follow-up and correction
 
-Systemd reported `NeedDaemonReload=yes` after editing the file, which indicates it was holding the old definition. Yet a `restart` without `daemon-reload` already tried to run `/usr/bin/slep`, which is what I would expect only after a reload. I do not have a verified explanation. Next step: recreate the unit, edit it, confirm `NeedDaemonReload=yes`, restart without reloading and record which `ExecStart` systemd actually runs.
+In the "restart without `daemon-reload`" step, the service ran the new broken path. I could not reproduce that. In [Lab 02](lab-02-systemd-daemon-reload.md) I repeated the same sequence (edit to `slep`, `restart`, no reload) on a fresh unit: systemd kept running the old `sleep 300` and showed both `NeedDaemonReload=yes` and a `changed on disk` warning. Neither appeared in this lab.
+
+The most likely explanation is that a `daemon-reload` was run in this lab without being recorded between the edit and the restart. That is an inference, not something I can prove from the output I kept. The conclusion to trust is the one from Lab 02: `restart` alone does not pick up an edited unit file.
