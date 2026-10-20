@@ -17,6 +17,7 @@ These are learning labs, not production code. The goal is to show how I reason a
 | --- | ----- | ------ |
 | [Lab 01](linux/troubleshooting/lab-01-systemd-exec-failure.md) | Diagnosing a failing systemd service (`status=203/EXEC`) | `systemctl`, `journalctl`, unit files, `daemon-reload` |
 | [Lab 02](linux/troubleshooting/lab-02-systemd-daemon-reload.md) | What systemd runs after a unit file is edited (disk vs loaded vs running) | `systemctl show`, `NeedDaemonReload`, `ps`, `daemon-reload` |
+| [Lab 03](linux/labs/lab-03-acl-directory-traversal.md) | Letting one group traverse a directory with an ACL, and the ACL mask | `setfacl`, `getfacl`, permissions, `sudo -u` |
 
 More labs will be added here as they are completed. Networking and Git labs will get their own sections when they exist.
 
